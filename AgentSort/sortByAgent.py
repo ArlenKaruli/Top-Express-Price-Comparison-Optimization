@@ -124,11 +124,22 @@ def check_unusual_prices(prices):
     unusual = False
     reasons = []
 
+    # Flag if there is only one registration
+    if len(prices) == 1:
+        return True, "Vetëm një regjistrim çmimi"
+
+    # Flag if there are only two prices and they differ
+    if len(prices) == 2:
+        if prices[0] != prices[1]:
+            return True, "Vetëm dy çmime të ndryshme"
+        else:
+            return False, ""
+
     # Flag any price decrease
     for i in range(1, len(prices)):
         if prices[i] < prices[i - 1]:
             unusual = True
-            reasons.append("Price decrease")
+            reasons.append("Ulja e çmimit")
 
     # Flag temporary price change like:
     # 40, 40, 50, 40, 40
@@ -143,7 +154,7 @@ def check_unusual_prices(prices):
             and previous_price == next_price
         ):
             unusual = True
-            reasons.append("Temporary price change")
+            reasons.append("Ndryshim i përkohshëm çmimi")
 
     # Flag sudden final change like:
     # 40, 40, 40, 50
@@ -153,7 +164,7 @@ def check_unusual_prices(prices):
 
         if last_price != previous_price and prices[:-1].count(previous_price) >= 2:
             unusual = True
-            reasons.append("Sudden final change")
+            reasons.append("Ndryshim i papritur në fund")
 
     return unusual, ", ".join(sorted(set(reasons)))
 
@@ -251,9 +262,9 @@ for client_name in sorted(client_products.keys(), key=lambda x: x.lower()):
     # Table headers
     header_row = current_row + 1
 
-    ws.cell(row=header_row, column=1).value = "Product"
-    ws.cell(row=header_row, column=2).value = "Written Price"
-    ws.cell(row=header_row, column=3).value = "Flag Reason"
+    ws.cell(row=header_row, column=1).value = "Produkti"
+    ws.cell(row=header_row, column=2).value = "Cmimi i Regjistruar"
+    ws.cell(row=header_row, column=3).value = "Arsyeja e kontrollit"
 
     for col in range(1, 4):
         ws.cell(row=header_row, column=col).font = Font(bold=True)
@@ -302,4 +313,5 @@ for col in range(1, ws.max_column + 1):
 
 wb.save(output_file)
 
-print(f"Done. Created {output_file.name}")
+print(f"Procesi përfundoi me sukses. U krijua skedari: {output_file.name}")
+input("Shtyp Enter për të dalë...")
