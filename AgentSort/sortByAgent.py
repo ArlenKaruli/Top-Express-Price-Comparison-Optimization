@@ -1,7 +1,12 @@
 import pandas as pd
 import re
+import os
+import sys
+import tkinter as tk
+from tkinter import filedialog
 from collections import defaultdict
 from pathlib import Path
+from datetime import datetime
 
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment
@@ -9,34 +14,30 @@ from openpyxl.utils import get_column_letter
 
 
 # =========================
-# Automatically find Excel file in same folder
+# Let user choose Excel file
 # =========================
 
-script_folder = Path(__file__).resolve().parent
-output_file = script_folder / "prices_by_client.xlsx"
+root = tk.Tk()
+root.withdraw()
+root.attributes("-topmost", True)
 
-excel_files = [
-    file for file in script_folder.glob("*.xlsx")
-    if not file.name.startswith("~$")
-    and file.name != output_file.name
-]
+selected_file = filedialog.askopenfilename(
+    title="Zgjidh skedarin Excel",
+    filetypes=[("Excel files", "*.xlsx *.xls")]
+)
 
-if len(excel_files) == 0:
-    raise FileNotFoundError("No Excel file found in the same folder as this script.")
+if not selected_file:
+    print("Nuk u zgjodh asnjë skedar.")
+    input("Shtyp Enter për të dalë...")
+    sys.exit()
 
-if len(excel_files) > 1:
-    print("More than one Excel file found.")
-    print("Please leave only one input Excel file in this folder.")
-    print("Files found:")
+input_file = Path(selected_file)
 
-    for file in excel_files:
-        print("-", file.name)
+# Save output in same folder as selected Excel file
+timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+output_file = input_file.parent / f"prices_by_client_{timestamp}.xlsx"
 
-    raise SystemExit
-
-input_file = excel_files[0]
-
-print(f"Using input file: {input_file.name}")
+print(f"Skedari i zgjedhur: {input_file.name}")
 
 
 # =========================
@@ -51,12 +52,6 @@ yellow_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="s
 # =========================
 
 def clean_product_name(product_header):
-    """
-    Turns:
-    FB01 - bravo Star
-    into:
-    bravo Star
-    """
     return re.sub(
         r"^[A-Z]{1,4}\d+\s*-\s*",
         "",
@@ -66,16 +61,6 @@ def clean_product_name(product_header):
 
 
 def clean_client_name(client):
-    """
-    Keeps only the part before /.
-
-    Example:
-    Foshker Kombinat DSP / Albani
-    becomes:
-    Foshker Kombinat DSP
-
-    If there is no slash, keeps full name.
-    """
     client = str(client).strip()
 
     if "/" in client:
@@ -85,11 +70,6 @@ def clean_client_name(client):
 
 
 def is_product_header(value):
-    """
-    Detects rows like:
-    FB01 - bravo Star
-    CR01 - CELES RIMBUSHES PA CREDIT
-    """
     if pd.isna(value):
         return False
 
@@ -99,10 +79,6 @@ def is_product_header(value):
 
 
 def find_column(df, possible_names, fallback_index):
-    """
-    Finds column index based on header name.
-    If it cannot find it, uses fallback index.
-    """
     possible_names = [name.lower().strip() for name in possible_names]
 
     for row_index in range(min(20, len(df))):
@@ -141,8 +117,7 @@ def check_unusual_prices(prices):
             unusual = True
             reasons.append("Ulja e çmimit")
 
-    # Flag temporary price change like:
-    # 40, 40, 50, 40, 40
+    # Flag temporary price change like 40, 40, 50, 40, 40
     for i in range(1, len(prices) - 1):
         previous_price = prices[i - 1]
         current_price = prices[i]
@@ -156,8 +131,7 @@ def check_unusual_prices(prices):
             unusual = True
             reasons.append("Ndryshim i përkohshëm çmimi")
 
-    # Flag sudden final change like:
-    # 40, 40, 40, 50
+    # Flag sudden final change like 40, 40, 40, 50
     if len(prices) >= 3:
         last_price = prices[-1]
         previous_price = prices[-2]
@@ -175,10 +149,6 @@ def check_unusual_prices(prices):
 
 df = pd.read_excel(input_file, header=None)
 
-# In your format:
-# Product header is in column A
-# Client/Klient is usually column E
-# Price/Cmimi is usually column I
 client_col = find_column(
     df,
     ["klient", "client", "description", "pershkrim", "përshkrim"],
@@ -187,16 +157,18 @@ client_col = find_column(
 
 price_col = find_column(
     df,
-    ["cmimi", "price"],
+    ["cmimi", "çmimi", "price"],
     fallback_index=8
 )
 
-print(f"Detected client column index: {client_col}")
-print(f"Detected price column index: {price_col}")
+print(f"Kolona e klientit: {client_col}")
+print(f"Kolona e çmimit: {price_col}")
 
 
-# Structure:
-# client_products[client_name][product_name] = [prices...]
+# =========================
+# Organize data by client/product
+# =========================
+
 client_products = defaultdict(lambda: defaultdict(list))
 
 current_product = None
@@ -263,8 +235,8 @@ for client_name in sorted(client_products.keys(), key=lambda x: x.lower()):
     header_row = current_row + 1
 
     ws.cell(row=header_row, column=1).value = "Produkti"
-    ws.cell(row=header_row, column=2).value = "Cmimi i Regjistruar"
-    ws.cell(row=header_row, column=3).value = "Arsyeja e kontrollit"
+    ws.cell(row=header_row, column=2).value = "Çmimi i Regjistruar"
+    ws.cell(row=header_row, column=3).value = "Arsyeja e Kontrollit"
 
     for col in range(1, 4):
         ws.cell(row=header_row, column=col).font = Font(bold=True)
@@ -274,9 +246,7 @@ for client_name in sorted(client_products.keys(), key=lambda x: x.lower()):
     for product_name in sorted(products.keys(), key=lambda x: x.lower()):
         prices = products[product_name]
 
-        # Written price should be highest registered price
         written_price = max(prices)
-
         unusual, reason = check_unusual_prices(prices)
 
         ws.cell(row=row_num, column=1).value = product_name
@@ -288,7 +258,6 @@ for client_name in sorted(client_products.keys(), key=lambda x: x.lower()):
 
         row_num += 1
 
-    # Leave blank space before next client
     current_row = row_num + 3
 
 
@@ -308,10 +277,15 @@ for col in range(1, ws.max_column + 1):
 
 
 # =========================
-# Save output
+# Save and open output
 # =========================
 
 wb.save(output_file)
 
 print(f"Procesi përfundoi me sukses. U krijua skedari: {output_file.name}")
-input("Shtyp Enter për të dalë...")
+
+try:
+    os.startfile(output_file)
+except Exception as e:
+    print(f"Skedari u krijua, por nuk u hap automatikisht: {e}")
+    input("Shtyp Enter për të dalë...")
