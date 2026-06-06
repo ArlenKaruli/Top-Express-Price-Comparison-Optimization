@@ -1,0 +1,12 @@
+# Ignore Excel files
+*.xlsx
+*.xls
+~$*
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore generated output files
+prices_by_client.xlsx
+combined_written_prices.xlsx
