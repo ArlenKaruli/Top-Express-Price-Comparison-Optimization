@@ -46,7 +46,10 @@ LEI_600_STANDARD_PRODUCTS = {
 }
 
 LEI_400_PRODUCTS = {
-    3: "Total Ero Ginseng Caffe Moneta",
+    3: (
+        "Total Ero Ginseng Caffe Moneta",
+        "Total Ero Ginseng Caffe Lungo Moneta",
+    ),
     4: "Total Ero Exp Caffe Moneta",
     5: "Total Ero Exp Caffe Lungo Moneta",
     6: "Total Ero Exp Macchiato Moneta",
@@ -62,9 +65,16 @@ LEI_400_PRODUCTS = {
 LEI_300_PRODUCTS = {
     code: product
     for code, product in LEI_600_PRODUCTS.items()
-    if code <= 21
+    if code <= 18
 }
-LEI_300_PRODUCTS[22] = "Ero Te Al Limone"
+LEI_300_PRODUCTS.update(
+    {
+        19: "Total Ero Cioccolata Al Latte Moneta",
+        20: "Total Ero Cioccolato Moneta",
+        21: "Total Ero Cioccolato Forte Moneta",
+        22: "Ero Te Al Limone",
+    }
+)
 
 MACHINES = {
     "1": ("LEI 600", LEI_600_PRODUCTS),
@@ -74,8 +84,8 @@ MACHINES = {
     "5": ("LEI 300", LEI_300_PRODUCTS),
 }
 
-MACHINE_SUFFIX = re.compile(
-    r"\s+lei\s*(?:600\s*(?:standart(?:e)?)?|400\s*\+?|300)\s*$",
+MACHINE_LABEL = re.compile(
+    r"\blei\s*(?:600\s*(?:standart(?:e)?)?|400\s*\+?|300)\b",
     re.IGNORECASE,
 )
 
@@ -83,21 +93,28 @@ MACHINE_SUFFIX = re.compile(
 def normalize_product_name(value):
     text = unicodedata.normalize("NFKD", str(value))
     text = "".join(character for character in text if not unicodedata.combining(character))
-    text = MACHINE_SUFFIX.sub("", text.strip())
+    text = MACHINE_LABEL.sub(" ", text.strip())
     text = re.sub(r"[^\w]+", " ", text.casefold())
     text = re.sub(r"\s+", " ", text).strip()
 
     # Some Windows terminals paste "Caffè" as "Caff?" and leave "caff".
     text = re.sub(r"\bcaff\b", "caffe", text)
+    # "Chiave" entries use the same representative code as "Moneta".
+    text = re.sub(r"\bchiave$", "moneta", text)
+    # Treat common spelling variants from the Excel exports as equivalent.
+    text = re.sub(r"\bmachiato\b", "macchiato", text)
+    text = re.sub(r"\bmoc+h?accino\b", "mocaccino", text)
+    text = re.sub(r"\bmochaccino\b", "mocaccino", text)
+    text = re.sub(r"\bcioccolata\b", "cioccolato", text)
     return text
 
 
 def product_aliases(product):
-    normalized = normalize_product_name(product)
-    aliases = {normalized}
+    products = product if isinstance(product, (tuple, list, set)) else (product,)
+    aliases = {normalize_product_name(name) for name in products}
 
     # The LEI 300 table omits these words for its tea entry.
-    if normalized == "ero te al limone":
+    if "ero te al limone" in aliases:
         aliases.add("total ero te al limone moneta")
 
     return aliases
