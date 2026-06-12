@@ -127,7 +127,7 @@ def build_product_lookup(products):
         for alias in product_aliases(product):
             existing_code = lookup.get(alias)
             if existing_code is not None and existing_code != code:
-                raise ValueError(f'Product "{product}" has conflicting codes.')
+                raise ValueError(f'Produkti "{product}" ka kode qe bien ndesh.')
             lookup[alias] = code
 
     return lookup
@@ -191,7 +191,7 @@ def process_pasted_text(text, products):
     output_lines = []
     if totals:
         total_quantity = sum(totals.values(), Decimal(0))
-        output_lines.append(f"Total: {format_quantity(total_quantity)}")
+        output_lines.append(f"Totali: {format_quantity(total_quantity)}")
         output_lines.extend(
             f"{code}: {format_quantity(totals[code])}"
             for code in sorted(totals)
@@ -202,20 +202,20 @@ def process_pasted_text(text, products):
 
 
 def choose_machine():
-    print("Choose the vending machine:")
+    print("Zgjidhni automatin:")
     for option, (name, _) in MACHINES.items():
         print(f"  {name} [{option}]")
 
     while True:
-        choice = input("\nEnter 1, 2, 3, 4, or 5: ").strip()
+        choice = input("\nShkruani 1, 2, 3, 4 ose 5: ").strip()
         if choice in MACHINES:
             return MACHINES[choice]
-        print("Invalid choice. Please enter a number from 1 to 5.")
+        print("Zgjedhje e pavlefshme. Ju lutem shkruani nje numer nga 1 deri ne 5.")
 
 
 def read_pasted_text():
-    print("\nPaste the 3 Excel columns: product, price, quantity.")
-    print("Press Enter on an empty line when finished.\n")
+    print("\nNgjitni 3 kolonat e Excel-it: produkti, cmimi, sasia.")
+    print("Kur te perfundoni, shtypni Enter ne nje rresht bosh.\n")
 
     lines = []
     while True:
@@ -231,22 +231,45 @@ def read_pasted_text():
     return "\n".join(lines)
 
 
+def ask_to_continue():
+    while True:
+        try:
+            choice = input("\nDeshironi te vazhdoni? Po [p] Jo [j]: ").strip().casefold()
+        except EOFError:
+            return False
+
+        if choice in {"p", "po", "y", "yes"}:
+            return True
+        if choice in {"j", "jo", "n", "no"}:
+            return False
+        print("Zgjedhje e pavlefshme. Ju lutem shkruani p ose j.")
+
+
 def main():
-    machine_name, products = choose_machine()
-    pasted_text = read_pasted_text()
-    output, unmatched, invalid_rows = process_pasted_text(pasted_text, products)
+    while True:
+        machine_name, products = choose_machine()
+        pasted_text = read_pasted_text()
+        output, unmatched, invalid_rows = process_pasted_text(pasted_text, products)
 
-    print(f"\nOutput for {machine_name}:")
-    if output:
-        print(output)
-    else:
-        print("No matching products were found.")
+        print(f"\nRezultati per {machine_name}:")
+        if output:
+            print(output)
+        else:
+            print("Nuk u gjet asnje produkt qe perputhet.")
 
-    if unmatched:
-        print(f"\nIgnored {len(unmatched)} product(s) not used by {machine_name}.")
-    if invalid_rows:
-        rows = ", ".join(str(row) for row in invalid_rows)
-        print(f"Skipped invalid row(s): {rows}")
+        if unmatched:
+            print(
+                f"\nU injoruan {len(unmatched)} produkte qe nuk perdoren "
+                f"nga {machine_name}."
+            )
+        if invalid_rows:
+            rows = ", ".join(str(row) for row in invalid_rows)
+            print(f"U anashkaluan rreshtat e pavlefshem: {rows}")
+
+        if not ask_to_continue():
+            print("Mirupafshim.")
+            break
+        print()
 
 
 if __name__ == "__main__":
