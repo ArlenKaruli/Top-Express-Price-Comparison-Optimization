@@ -213,21 +213,51 @@ def choose_machine():
         print("Zgjedhje e pavlefshme. Ju lutem shkruani nje numer nga 1 deri ne 5.")
 
 
-def read_pasted_text():
-    print("\nNgjitni 3 kolonat e Excel-it: produkti, cmimi, sasia.")
-    print("Kur te perfundoni, shtypni Enter ne nje rresht bosh.\n")
+def read_clipboard_text():
+    try:
+        import tkinter as tk
+    except ImportError:
+        return ""
 
-    lines = []
+    root = None
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        root.update()
+        return root.clipboard_get()
+    except tk.TclError:
+        return ""
+    finally:
+        if root is not None:
+            root.destroy()
+
+
+def read_pasted_text():
+    print("\nKopjoni 3 kolonat nga Excel-i: produkti, cmimi, sasia.")
+    print("Pastaj kthehuni ketu dhe shtypni vetem Enter.")
+
+    try:
+        first_line = input("\nShtypni Enter per te lexuar te dhenat e kopjuara: ")
+    except EOFError:
+        first_line = ""
+
+    if not first_line.strip():
+        clipboard_text = read_clipboard_text()
+        if clipboard_text.strip():
+            print("Te dhenat u lexuan nga Excel-i.")
+            return clipboard_text
+        print("Nuk u gjet tekst ne clipboard. Ngjitni te dhenat me poshte.")
+
+    lines = [first_line] if first_line.strip() else []
+    print("Kur te perfundoni, shtypni Enter ne nje rresht bosh.\n")
     while True:
         try:
             line = input()
         except EOFError:
             break
-
         if not line.strip():
             break
         lines.append(line)
-
     return "\n".join(lines)
 
 
