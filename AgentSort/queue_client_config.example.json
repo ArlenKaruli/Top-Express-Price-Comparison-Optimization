@@ -1,0 +1,5 @@
+{
+  "queue_root": "\\\\fin09\\SERVERI TOP EXPRESS\\Program Arlen Karuli\\Kontroll Cmimesh\\PriceCheckerQueue",
+  "poll_seconds": 2,
+  "request_timeout_seconds": 300
+}

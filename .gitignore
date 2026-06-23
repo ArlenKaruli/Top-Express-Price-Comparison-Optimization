@@ -1,12 +1,62 @@
-# Ignore Excel files
+# Confidential local configuration and secrets
+.env
+.env.*
+!.env.example
+!.env.template
+**/queue_client_config.json
+**/secrets/
+**/credentials/
+**/*-secrets.*
+**/*_secrets.*
+**/*-credentials.*
+**/*_credentials.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Customer data, exports, and local databases
 *.xlsx
 *.xls
+*.csv
+*.tsv
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*.dump
+**/prices_by_client.xlsx
+**/combined_written_prices.xlsx
 ~$*
 
-# Ignore Python cache files
+# Python environments, caches, and test output
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
 
-# Ignore generated output files
-prices_by_client.xlsx
-combined_written_prices.xlsx
+# Packaged application and build artifacts (may embed local paths or config)
+build/
+dist/
+*.spec.bak
+*.exe
+
+# Runtime and diagnostic files
+*.log
+logs/
+*.pid
+
+# IDE and operating-system metadata
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
